@@ -1,0 +1,17 @@
+[package]
+name = "rpic"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.96"
+base64 = "0.22.1"
+chrono = "0.4.40"
+hmac = "0.12.1"
+image = "0.25.5"
+md5 = "0.7.0"
+reqwest = "0.12.12"
+sha1 = "0.10.6"
+tokio = { version = "1.43.0", features = ["full"] }
+uuid = { version = "1.15.1", features = ["v4"] }
+webp = "0.3.0"
