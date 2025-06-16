@@ -5,16 +5,16 @@ use hmac::{Hmac, Mac};
 use md5::compute;
 use reqwest::Client;
 use sha1::Sha1;
+use std::sync::LazyLock;
 use uuid::Uuid;
+
+use crate::config::OssConfig;
 
 // 定义 HMAC-SHA1 类型
 type HmacSha1 = Hmac<Sha1>;
 
-// 用户登录名称 rpic@1318972003445929.onaliyun.com
-const OSS_ACCESS_KEY_ID: &str = "LTAI5t75P2po9oxpoqGSMne8";
-const OSS_ACCESS_KEY_SECRET: &str = "UYeclwCk13fWuOVeIs4gdbKSGtHkrB";
-const OSS_BUCKET: &str = "rpic-d75c7cb3ffe8";
-const OSS_ENDPOINT: &str = "oss-cn-chengdu.aliyuncs.com";
+static OSS_CONFIG: LazyLock<OssConfig> =
+    LazyLock::new(|| OssConfig::from_env_or_file().expect("failed to load OSS config"));
 
 /// 生成 OSS Authorization 头
 ///
@@ -41,13 +41,13 @@ fn generate_auth(
     );
 
     // 使用 HMAC-SHA1 算法计算签名
-    let mut mac = HmacSha1::new_from_slice(OSS_ACCESS_KEY_SECRET.as_bytes())?;
+    let mut mac = HmacSha1::new_from_slice(OSS_CONFIG.access_key_secret.clone().as_bytes())?;
     mac.update(string_to_sign.as_bytes());
     let result = mac.finalize().into_bytes();
 
-    let signature = general_purpose::STANDARD.encode(&result);
+    let signature = general_purpose::STANDARD.encode(result);
 
-    Ok(format!("OSS {}:{}", OSS_ACCESS_KEY_ID, signature))
+    Ok(format!("OSS {}:{}", OSS_CONFIG.access_key_id, signature))
 }
 
 fn generate_file_path() -> String {
@@ -72,8 +72,10 @@ fn generate_http_date() -> String {
 
 pub async fn put_webp(webp_data: &[u8]) -> Result<String> {
     let file_path = generate_file_path();
+    let oss_bucket = OSS_CONFIG.bucket.clone();
+    let oss_endpoint = OSS_CONFIG.endpoint.clone();
 
-    let url = format!("https://{OSS_BUCKET}.{OSS_ENDPOINT}/{file_path}");
+    let url = format!("https://{oss_bucket}.{oss_endpoint}/{file_path}");
 
     let cache_control = "public";
     let content_md5 = generate_content_md5(webp_data);
@@ -81,7 +83,7 @@ pub async fn put_webp(webp_data: &[u8]) -> Result<String> {
     let x_oss_object_acl = "public-read";
     let date = generate_http_date();
     let canonicalized_oss_headers = format!("x-oss-object-acl:{x_oss_object_acl}\n");
-    let canonicalized_resource = format!("/{OSS_BUCKET}/{file_path}");
+    let canonicalized_resource = format!("/{oss_bucket}/{file_path}");
 
     let auth = generate_auth(
         "PUT",

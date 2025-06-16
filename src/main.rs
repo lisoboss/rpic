@@ -5,6 +5,7 @@ use std::env;
 use std::path::PathBuf;
 use webp::{Encoder, WebPMemory};
 
+mod config;
 mod oss;
 
 #[derive(Debug)]
