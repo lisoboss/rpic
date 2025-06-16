@@ -35,12 +35,16 @@ impl OssConfig {
     pub fn from_config_file() -> io::Result<Self> {
         let paths = [
             PathBuf::from("/etc/rpic/config.toml"),
+            dirs::home_dir()
+                .map(|d| d.join(".config/rpic/config.toml"))
+                .unwrap(),
             dirs::config_dir()
                 .map(|d| d.join("rpic/config.toml"))
-                .unwrap_or_else(|| PathBuf::from("~/.config/rpic/config.toml")),
+                .unwrap(),
         ];
 
         for path in &paths {
+            dbg!(path);
             if path.exists() {
                 let content = fs::read_to_string(path)?;
                 let config: ConfigFile = toml::from_str(&content)
